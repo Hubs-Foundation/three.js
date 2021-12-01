@@ -1801,6 +1801,83 @@ function WebGLRenderer( parameters = {} ) {
 
 		}
 
+		if(object.useReflectionProbes && material.isMeshStandardMaterial && AFRAME && AFRAME.scenes && AFRAME.scenes[0]) {
+			if(!geometry.boundingBox) {
+				geometry.computeBoundingBox();
+			}
+			const objectAABB = geometry.boundingBox.clone().applyMatrix4(object.matrixWorld);
+
+			if(!object.overlapHelper) {
+				object.overlapHelper = new THREE.Box3Helper(new THREE.Box3());
+				// scene.add(object.overlapHelper);
+			}
+
+			let envMapA = null;
+			let envMapB = null;
+			let maxVolumeA = 0;
+			let maxVolumeB = 0;
+
+			const probes = AFRAME.scenes[0].systems["hubs-systems"].environmentSystem.reflectionProbes
+			for(let i = 0; i< probes.length; i++) {
+				if(probes[i].box.intersectsBox(objectAABB)) {
+
+					const volume = object.overlapHelper.box.copy(objectAABB).intersect(probes[i].box).volume()
+					object.overlapHelper.matrixNeedsUpdate = true;
+					object.overlapHelper.updateMatrixWorld();
+					// if(object.name === "mesh_0") {
+					// 	console.log(i, volume, maxVolume)
+					// }
+					if(volume > maxVolumeA) {
+						envMapB = envMapA;
+						maxVolumeB = maxVolumeA;
+						envMapA = probes[i].envMapTexture;
+						maxVolumeA = volume;
+					} else if(volume > maxVolumeB) {
+						envMapB = probes[i].envMapTexture;
+						maxVolumeB = volume;
+					}
+				}
+			}
+
+			const blend = envMapB ?
+				(maxVolumeB / maxVolumeA) * 0.5 :
+				1 - (maxVolumeA / objectAABB.volume())
+
+			if(object.name === "mesh_1") {
+				// console.log(!!envMapA, !!envMapB, blend)
+				// console.log(
+				// 	material.envMap ? material.envMap.id : "scene",
+				// 	material.envMap2 ? material.envMap2.id : "scene",
+				// 	maxVolumeA,
+				// 	maxVolumeB,
+				// 	material.envMapBlend
+				// );
+			}
+
+			envMapA = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapA || environment );
+			envMapB = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapB || environment );
+
+			// p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
+			// p_uniforms.setValue( _gl, 'envMap2', envMapB, textures );
+			// p_uniforms.setValue( _gl, 'envMapBlend', blend );
+
+			// const needsUpdate = material.envMap != envMapA || material.envMap2 !== envMapB;
+			// if(needsUpdate) {
+			// 	material.envMap = envMapA;
+			// 	material.envMap2 = envMapB;
+			// 	// material.needsUpdate = true;
+
+			// 	if(object.name === "mesh_2") {
+			// 		console.log("material update")
+			// 	}
+			// }
+
+			// material.envMapBlend = envMapB ?
+			// 	(maxVolumeB / maxVolumeA) * 0.5 :
+			// 	1 - (maxVolumeA / baseVolume)
+
+		}
+
 		// common matrices
 
 		p_uniforms.setValue( _gl, 'modelViewMatrix', object.modelViewMatrix );

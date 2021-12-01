@@ -31,6 +31,8 @@ const UniformsLib = {
 	envmap: {
 
 		envMap: { value: null },
+		envMap2: { value: null },
+		envMapBlend: { value: 0 },
 		flipEnvMap: { value: - 1 },
 		reflectivity: { value: 1.0 }, // basic, lambert, phong
 		ior: { value: 1.5 }, // standard, physical
