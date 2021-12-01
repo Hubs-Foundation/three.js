@@ -176,6 +176,9 @@ function WebGLRenderer( parameters = {} ) {
 
 	const _vector3 = new Vector3();
 
+	const _tmpObjectAABB = new THREE.Box3();
+	const _tmpOverlapBox = new THREE.Box3();
+
 	const _emptyScene = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
 
 	function getTargetPixelRatio() {
@@ -1251,6 +1254,12 @@ function WebGLRenderer( parameters = {} ) {
 
 		currentRenderState.setupLightsView( camera );
 
+		// TODO this triggers cubemap generation up front, should probably be done elsewhere
+		const reflectionProbes = currentRenderState.state.lights.state.reflectionProbes;
+		for(let i = 0; i<reflectionProbes.length; i++) {
+			cubeuvmaps.get(reflectionProbes[i].texture);
+		}
+
 		if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, scene, camera );
 
 		if ( viewport ) state.viewport( _currentViewport.copy( viewport ) );
@@ -1801,81 +1810,65 @@ function WebGLRenderer( parameters = {} ) {
 
 		}
 
-		if(object.useReflectionProbes && material.isMeshStandardMaterial && AFRAME && AFRAME.scenes && AFRAME.scenes[0]) {
-			if(!geometry.boundingBox) {
-				geometry.computeBoundingBox();
-			}
-			const objectAABB = geometry.boundingBox.clone().applyMatrix4(object.matrixWorld);
+		if(materialProperties.envMap && material.isMeshStandardMaterial) {
+			if(object.reflectionProbeMode === "static" && object.__webglStaticReflectionProbe) {
+				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
+				p_uniforms.setValue( _gl, 'envMap2', object.__webglStaticReflectionProbe.envMap2, textures );
+				p_uniforms.setValue( _gl, 'envMapBlend', object.__webglStaticReflectionProbe.envMapBlend );
+			} else if(object.reflectionProbeMode) {
+				if(!geometry.boundingBox) {
+					console.log("generated bounding box for ", object.name)
+					geometry.computeBoundingBox();
+				}
 
-			if(!object.overlapHelper) {
-				object.overlapHelper = new THREE.Box3Helper(new THREE.Box3());
-				// scene.add(object.overlapHelper);
-			}
+				_tmpObjectAABB.copy(geometry.boundingBox).applyMatrix4(object.matrixWorld);
 
-			let envMapA = null;
-			let envMapB = null;
-			let maxVolumeA = 0;
-			let maxVolumeB = 0;
+				let envMapA = null;
+				let envMapB = null;
+				let maxVolumeA = 0;
+				let maxVolumeB = 0;
 
-			const probes = AFRAME.scenes[0].systems["hubs-systems"].environmentSystem.reflectionProbes
-			for(let i = 0; i< probes.length; i++) {
-				if(probes[i].box.intersectsBox(objectAABB)) {
-
-					const volume = object.overlapHelper.box.copy(objectAABB).intersect(probes[i].box).volume()
-					object.overlapHelper.matrixNeedsUpdate = true;
-					object.overlapHelper.updateMatrixWorld();
-					// if(object.name === "mesh_0") {
-					// 	console.log(i, volume, maxVolume)
-					// }
-					if(volume > maxVolumeA) {
-						envMapB = envMapA;
-						maxVolumeB = maxVolumeA;
-						envMapA = probes[i].envMapTexture;
-						maxVolumeA = volume;
-					} else if(volume > maxVolumeB) {
-						envMapB = probes[i].envMapTexture;
-						maxVolumeB = volume;
+				// TODO maybe move probes to render state, collect at the same time we collect lights
+				const probes = lights.state.reflectionProbes
+				for(let i = 0; i< probes.length; i++) {
+					if(probes[i].box.intersectsBox(_tmpObjectAABB)) {
+						const volume = _tmpOverlapBox.copy(_tmpObjectAABB).intersect(probes[i].box).volume()
+						if(volume > maxVolumeA) {
+							envMapB = envMapA;
+							maxVolumeB = maxVolumeA;
+							envMapA = probes[i].texture;
+							maxVolumeA = volume;
+						} else if(volume > maxVolumeB) {
+							envMapB = probes[i].texture;
+							maxVolumeB = volume;
+						}
 					}
 				}
+
+				const blend = envMapB ?
+					maxVolumeB / (maxVolumeA + maxVolumeB) : 
+					1 - (maxVolumeA / _tmpObjectAABB.volume())
+
+				envMapA = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapA || environment );
+				envMapB = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapB || environment );
+
+				p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
+				p_uniforms.setValue( _gl, 'envMap2', envMapB, textures );
+				p_uniforms.setValue( _gl, 'envMapBlend', blend );
+
+				if(object.reflectionProbeMode === "static") {
+					object.__webglStaticReflectionProbe = {
+						envMap: envMapA,
+						envMap2: envMapB,
+						envMapBlend: blend
+					}
+				}
+
+			} else {
+				// p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
+				p_uniforms.setValue( _gl, 'envMap2', null, textures);
+				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
 			}
-
-			const blend = envMapB ?
-				(maxVolumeB / maxVolumeA) * 0.5 :
-				1 - (maxVolumeA / objectAABB.volume())
-
-			if(object.name === "mesh_1") {
-				// console.log(!!envMapA, !!envMapB, blend)
-				// console.log(
-				// 	material.envMap ? material.envMap.id : "scene",
-				// 	material.envMap2 ? material.envMap2.id : "scene",
-				// 	maxVolumeA,
-				// 	maxVolumeB,
-				// 	material.envMapBlend
-				// );
-			}
-
-			envMapA = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapA || environment );
-			envMapB = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapB || environment );
-
-			// p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
-			// p_uniforms.setValue( _gl, 'envMap2', envMapB, textures );
-			// p_uniforms.setValue( _gl, 'envMapBlend', blend );
-
-			// const needsUpdate = material.envMap != envMapA || material.envMap2 !== envMapB;
-			// if(needsUpdate) {
-			// 	material.envMap = envMapA;
-			// 	material.envMap2 = envMapB;
-			// 	// material.needsUpdate = true;
-
-			// 	if(object.name === "mesh_2") {
-			// 		console.log("material update")
-			// 	}
-			// }
-
-			// material.envMapBlend = envMapB ?
-			// 	(maxVolumeB / maxVolumeA) * 0.5 :
-			// 	1 - (maxVolumeA / baseVolume)
-
 		}
 
 		// common matrices
