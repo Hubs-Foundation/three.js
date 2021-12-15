@@ -26982,6 +26982,7 @@ function WebGLRenderer( parameters = {} ) {
 		}
 
         // Similar to note about skinned meshes above, this must be done before other texture uploads otherwise the texture units might overlap
+		let envMapA = null;
 		if(materialProperties.envMap && material.isMeshStandardMaterial) {
 			if(object.reflectionProbeMode === "static" && object.__webglStaticReflectionProbe) {
 				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
@@ -26995,7 +26996,6 @@ function WebGLRenderer( parameters = {} ) {
 
 				_tmpObjectAABB.copy(geometry.boundingBox).applyMatrix4(object.matrixWorld);
 
-				let envMapA = null;
 				let envMapB = null;
 				let maxVolumeA = 0;
 				let maxVolumeB = 0;
@@ -27086,6 +27086,11 @@ function WebGLRenderer( parameters = {} ) {
 			}
 
 			materials.refreshMaterialUniforms( m_uniforms, material, _pixelRatio, _height, _transmissionRenderTarget );
+
+            // TODO HACK refreshMaterialUniforms overrides this, we need to not be fighting it
+            if(envMapA) {
+				m_uniforms.envMap.value = envMapA;
+            }
 
 			WebGLUniforms.upload( _gl, materialProperties.uniformsList, m_uniforms, textures );
 
