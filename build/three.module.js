@@ -4138,7 +4138,9 @@ class Box3 {
 	}
 
 	volume() {
-		return ((this.max.x - this.min.x) * (this.max.y - this.min.y) * (this.max.z - this.min.z));
+
+		return ( ( this.max.x - this.min.x ) * ( this.max.y - this.min.y ) * ( this.max.z - this.min.z ) );
+
 	}
 
 	set( min, max ) {
@@ -6707,6 +6709,7 @@ class Object3D extends EventDispatcher {
 
 		this.castShadow = false;
 		this.receiveShadow = false;
+		this.reflectionProbeMode = false;
 
 		this.frustumCulled = true;
 		this.renderOrder = 0;
@@ -19876,7 +19879,7 @@ function WebGLLights( extensions, capabilities ) {
 
 			} else if ( light.isReflectionProbe ) {
 
-				state.reflectionProbes[numReflectionProbes++] = light;
+				state.reflectionProbes[ numReflectionProbes ++ ] = light;
 
 			} else if ( light.isDirectionalLight ) {
 
@@ -25408,8 +25411,8 @@ function WebGLRenderer( parameters = {} ) {
 
 	const _vector3 = new Vector3();
 
-	const _tmpObjectAABB = new THREE.Box3();
-	const _tmpOverlapBox = new THREE.Box3();
+	const _tmpObjectAABB = new Box3();
+	const _tmpOverlapBox = new Box3();
 
 	const _emptyScene = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
 
@@ -26488,8 +26491,10 @@ function WebGLRenderer( parameters = {} ) {
 
 		// TODO this triggers cubemap generation up front, should probably be done elsewhere
 		const reflectionProbes = currentRenderState.state.lights.state.reflectionProbes;
-		for(let i = 0; i<reflectionProbes.length; i++) {
-			cubeuvmaps.get(reflectionProbes[i].texture);
+		for ( let i = 0; i < reflectionProbes.length; i ++ ) {
+
+			cubeuvmaps.get( reflectionProbes[ i ].texture );
+
 		}
 
 		if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, scene, camera );
@@ -27041,7 +27046,7 @@ function WebGLRenderer( parameters = {} ) {
 				p_uniforms.setValue( _gl, 'envMap2', envMapB, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', blend );
 
-				if(object.reflectionProbeMode === 'static') {
+				if ( object.reflectionProbeMode === 'static' ) {
 
 					object.__webglStaticReflectionProbe = {
 						envMap: envMapA,
@@ -27054,7 +27059,7 @@ function WebGLRenderer( parameters = {} ) {
 			} else {
 
 				// p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
-				p_uniforms.setValue( _gl, 'envMap2', cubeuvmaps.get(scene.environment), textures);
+				p_uniforms.setValue( _gl, 'envMap2', cubeuvmaps.get( scene.environment ), textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
 
 			}
@@ -42270,7 +42275,7 @@ AmbientLightProbe.prototype.isAmbientLightProbe = true;
 
 class ReflectionProbe extends Light {
 
-	constructor( box = new Box3(), texture) {
+	constructor( box = new Box3(), texture ) {
 
 		super();
 

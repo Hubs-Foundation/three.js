@@ -16,6 +16,7 @@ import { Frustum } from '../math/Frustum.js';
 import { Matrix4 } from '../math/Matrix4.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Vector4 } from '../math/Vector4.js';
+import { Box3 } from '../math/Box3.js';
 import { WebGLAnimation } from './webgl/WebGLAnimation.js';
 import { WebGLAttributes } from './webgl/WebGLAttributes.js';
 import { WebGLBackground } from './webgl/WebGLBackground.js';
@@ -176,8 +177,8 @@ function WebGLRenderer( parameters = {} ) {
 
 	const _vector3 = new Vector3();
 
-	const _tmpObjectAABB = new THREE.Box3();
-	const _tmpOverlapBox = new THREE.Box3();
+	const _tmpObjectAABB = new Box3();
+	const _tmpOverlapBox = new Box3();
 
 	const _emptyScene = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
 
