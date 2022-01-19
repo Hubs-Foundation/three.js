@@ -1256,8 +1256,10 @@ function WebGLRenderer( parameters = {} ) {
 
 		// TODO this triggers cubemap generation up front, should probably be done elsewhere
 		const reflectionProbes = currentRenderState.state.lights.state.reflectionProbes;
-		for(let i = 0; i<reflectionProbes.length; i++) {
-			cubeuvmaps.get(reflectionProbes[i].texture);
+		for ( let i = 0; i < reflectionProbes.length; i ++ ) {
+
+			cubeuvmaps.get( reflectionProbes[ i ].texture );
+
 		}
 
 		if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, scene, camera );
@@ -1809,20 +1811,20 @@ function WebGLRenderer( parameters = {} ) {
 				p_uniforms.setValue( _gl, 'envMap2', envMapB, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', blend );
 
-				if(object.reflectionProbeMode === 'static') {
+				if ( object.reflectionProbeMode === 'static' ) {
 
 					object.__webglStaticReflectionProbe = {
 						envMap: envMapA,
 						envMap2: envMapB,
 						envMapBlend: blend
-					}
+					};
 
 				}
 
 			} else {
 
 				// p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
-				p_uniforms.setValue( _gl, 'envMap2', cubeuvmaps.get(scene.environment), textures);
+				p_uniforms.setValue( _gl, 'envMap2', cubeuvmaps.get( scene.environment ), textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
 
 			}

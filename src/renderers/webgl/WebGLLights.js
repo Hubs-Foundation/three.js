@@ -249,7 +249,7 @@ function WebGLLights( extensions, capabilities ) {
 
 			} else if ( light.isReflectionProbe ) {
 
-				state.reflectionProbes[numReflectionProbes++] = light
+				state.reflectionProbes[ numReflectionProbes ++ ] = light;
 
 			} else if ( light.isDirectionalLight ) {
 

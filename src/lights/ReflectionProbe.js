@@ -3,7 +3,7 @@ import { Light } from './Light.js';
 
 class ReflectionProbe extends Light {
 
-	constructor( box = new Box3(), texture) {
+	constructor( box = new Box3(), texture ) {
 
 		super();
 
