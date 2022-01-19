@@ -1749,45 +1749,58 @@ function WebGLRenderer( parameters = {} ) {
 
 		}
 
-        // Similar to note about skinned meshes above, this must be done before other texture uploads otherwise the texture units might overlap
+		// Similar to note about skinned meshes above, this must be done before other texture uploads otherwise the texture units might overlap
 		let envMapA = null;
-		if(materialProperties.envMap && material.isMeshStandardMaterial) {
-			if(object.reflectionProbeMode === "static" && object.__webglStaticReflectionProbe) {
+		if ( materialProperties.envMap && material.isMeshStandardMaterial ) {
+
+			if ( object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
+
 				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
 				p_uniforms.setValue( _gl, 'envMap2', object.__webglStaticReflectionProbe.envMap2, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', object.__webglStaticReflectionProbe.envMapBlend );
-			} else if(object.reflectionProbeMode) {
-				if(!geometry.boundingBox) {
-					console.log("generated bounding box for ", object.name)
+
+			} else if ( object.reflectionProbeMode ) {
+
+				if ( ! geometry.boundingBox ) {
+
+					console.log( 'generated bounding box for ', object.name );
 					geometry.computeBoundingBox();
+
 				}
 
-				_tmpObjectAABB.copy(geometry.boundingBox).applyMatrix4(object.matrixWorld);
+				_tmpObjectAABB.copy( geometry.boundingBox ).applyMatrix4( object.matrixWorld );
 
 				let envMapB = null;
 				let maxVolumeA = 0;
 				let maxVolumeB = 0;
 
-				// TODO maybe move probes to render state, collect at the same time we collect lights
-				const probes = lights.state.reflectionProbes
-				for(let i = 0; i< probes.length; i++) {
-					if(probes[i].box.intersectsBox(_tmpObjectAABB)) {
-						const volume = _tmpOverlapBox.copy(_tmpObjectAABB).intersect(probes[i].box).volume()
-						if(volume > maxVolumeA) {
+				const probes = lights.state.reflectionProbes;
+				for ( let i = 0; i < probes.length; i ++ ) {
+
+					if ( probes[ i ].box.intersectsBox( _tmpObjectAABB ) ) {
+
+						const volume = _tmpOverlapBox.copy( _tmpObjectAABB ).intersect( probes[ i ].box ).volume();
+						if ( volume > maxVolumeA ) {
+
 							envMapB = envMapA;
 							maxVolumeB = maxVolumeA;
-							envMapA = probes[i].texture;
+							envMapA = probes[ i ].texture;
 							maxVolumeA = volume;
-						} else if(volume > maxVolumeB) {
-							envMapB = probes[i].texture;
+
+						} else if ( volume > maxVolumeB ) {
+
+							envMapB = probes[ i ].texture;
 							maxVolumeB = volume;
+
 						}
+
 					}
+
 				}
 
 				const blend = envMapB ?
-					maxVolumeB / (maxVolumeA + maxVolumeB) : 
-					1 - (maxVolumeA / _tmpObjectAABB.volume())
+					  maxVolumeB / ( maxVolumeA + maxVolumeB ) :
+					  1 - ( maxVolumeA / _tmpObjectAABB.volume() );
 
 				envMapA = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapA || environment );
 				envMapB = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapB || environment );
@@ -1796,19 +1809,24 @@ function WebGLRenderer( parameters = {} ) {
 				p_uniforms.setValue( _gl, 'envMap2', envMapB, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', blend );
 
-				if(object.reflectionProbeMode === "static") {
+				if(object.reflectionProbeMode === 'static') {
+
 					object.__webglStaticReflectionProbe = {
 						envMap: envMapA,
 						envMap2: envMapB,
 						envMapBlend: blend
 					}
+
 				}
+
 			} else {
+
 				// p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
 				p_uniforms.setValue( _gl, 'envMap2', cubeuvmaps.get(scene.environment), textures);
 				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
-                
+
 			}
+
 		}
 
 		if ( !! geometry && ( geometry.morphAttributes.position !== undefined || geometry.morphAttributes.normal !== undefined ) ) {
@@ -1855,10 +1873,12 @@ function WebGLRenderer( parameters = {} ) {
 
 			materials.refreshMaterialUniforms( m_uniforms, material, _pixelRatio, _height, _transmissionRenderTarget );
 
-            // TODO HACK refreshMaterialUniforms overrides this, we need to not be fighting it
-            if(envMapA) {
+			// TODO HACK refreshMaterialUniforms overrides this, we should not be fighting it, but we don't want to force a full refreshMateerialUniforms on every object every frame to support reflection probes
+			if ( envMapA ) {
+
 				m_uniforms.envMap.value = envMapA;
-            }
+
+			}
 
 			WebGLUniforms.upload( _gl, materialProperties.uniformsList, m_uniforms, textures );
 
