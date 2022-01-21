@@ -26992,7 +26992,8 @@ function WebGLRenderer( parameters = {} ) {
 
 			if ( object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
 
-				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
+				envMapA = object.__webglStaticReflectionProbe.envMap;
+				p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
 				p_uniforms.setValue( _gl, 'envMap2', object.__webglStaticReflectionProbe.envMap2, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', object.__webglStaticReflectionProbe.envMapBlend );
 
