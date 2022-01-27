@@ -1752,14 +1752,14 @@ function WebGLRenderer( parameters = {} ) {
 
 		}
 
-		// Similar to note about skinned meshes above, this must be done before other texture uploads otherwise the texture units might overlap
-		let envMapA = null;
+		// This is not done in refreshMaterialUniforms because we want to be able to support the same material using different enviornment map (based on its location)
+		// Because of this, similar to the above note about skinned meshes, this must be done before refreshMaterialUniforms is called, and both texture uniforms must
+		// be set in all cases to prevent texture units from becoming out of sync when refreshMaterials is not set.
 		if ( materialProperties.envMap && material.isMeshStandardMaterial ) {
 
 			if ( object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
 
-				envMapA = object.__webglStaticReflectionProbe.envMap;
-				p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
+				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
 				p_uniforms.setValue( _gl, 'envMap2', object.__webglStaticReflectionProbe.envMap2, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', object.__webglStaticReflectionProbe.envMapBlend );
 
@@ -1774,6 +1774,7 @@ function WebGLRenderer( parameters = {} ) {
 
 				_tmpObjectAABB.copy( geometry.boundingBox ).applyMatrix4( object.matrixWorld );
 
+				let envMapA = null;
 				let envMapB = null;
 				let maxVolumeA = 0;
 				let maxVolumeB = 0;
@@ -1825,8 +1826,9 @@ function WebGLRenderer( parameters = {} ) {
 
 			} else {
 
-				// p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
-				p_uniforms.setValue( _gl, 'envMap2', cubeuvmaps.get( scene.environment ), textures );
+				const defaultEnv = cubeuvmaps.get( scene.environment );
+				p_uniforms.setValue( _gl, 'envMap', defaultEnv, textures );
+				p_uniforms.setValue( _gl, 'envMap2', defaultEnv, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
 
 			}
@@ -1876,13 +1878,6 @@ function WebGLRenderer( parameters = {} ) {
 			}
 
 			materials.refreshMaterialUniforms( m_uniforms, material, _pixelRatio, _height, _transmissionRenderTarget );
-
-			// TODO HACK refreshMaterialUniforms overrides this, we should not be fighting it, but we don't want to force a full refreshMateerialUniforms on every object every frame to support reflection probes
-			if ( envMapA ) {
-
-				m_uniforms.envMap.value = envMapA;
-
-			}
 
 			WebGLUniforms.upload( _gl, materialProperties.uniformsList, m_uniforms, textures );
 

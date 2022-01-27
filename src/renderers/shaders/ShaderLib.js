@@ -75,7 +75,13 @@ const ShaderLib = {
 
 		uniforms: mergeUniforms( [
 			UniformsLib.common,
-			UniformsLib.envmap,
+			( () => {
+
+				// TODO HACK don't include envMap uniform, it is currently handling directly in WebGLRenderer for ReflectionProbes support
+				const { envMap, ...rest } = UniformsLib.envmap; // eslint-disable-line no-unused-vars
+				return rest;
+
+			} )(),
 			UniformsLib.aomap,
 			UniformsLib.lightmap,
 			UniformsLib.emissivemap,

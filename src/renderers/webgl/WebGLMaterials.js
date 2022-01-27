@@ -149,7 +149,12 @@ function WebGLMaterials( properties ) {
 
 		if ( envMap ) {
 
-			uniforms.envMap.value = envMap;
+			// TODO HACK currently handling directly in WebGLRenderer only for MeshStandardMaterial for ReflectionProbes
+			if ( ! material.isMeshStandardMaterial ) {
+
+				uniforms.envMap.value = envMap;
+
+			}
 
 			uniforms.flipEnvMap.value = ( envMap.isCubeTexture && envMap.isRenderTargetTexture === false ) ? - 1 : 1;
 
