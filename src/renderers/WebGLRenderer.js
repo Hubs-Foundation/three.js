@@ -1757,13 +1757,13 @@ function WebGLRenderer( parameters = {} ) {
 		// be set in all cases to prevent texture units from becoming out of sync when refreshMaterials is not set.
 		if ( materialProperties.envMap && material.isMeshStandardMaterial ) {
 
-			if ( object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
+			if ( ! material.envMap && object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
 
 				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
 				p_uniforms.setValue( _gl, 'envMap2', object.__webglStaticReflectionProbe.envMap2, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', object.__webglStaticReflectionProbe.envMapBlend );
 
-			} else if ( object.reflectionProbeMode ) {
+			} else if ( ! material.envMap && object.reflectionProbeMode ) {
 
 				if ( ! geometry.boundingBox ) {
 
@@ -1826,9 +1826,8 @@ function WebGLRenderer( parameters = {} ) {
 
 			} else {
 
-				const defaultEnv = cubeuvmaps.get( scene.environment );
-				p_uniforms.setValue( _gl, 'envMap', defaultEnv, textures );
-				p_uniforms.setValue( _gl, 'envMap2', defaultEnv, textures );
+				p_uniforms.setValue( _gl, 'envMap', materialProperties.envMap, textures );
+				p_uniforms.setValue( _gl, 'envMap2', materialProperties.envMap, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
 
 			}
