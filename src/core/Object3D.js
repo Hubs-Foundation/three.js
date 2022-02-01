@@ -109,6 +109,7 @@ class Object3D extends EventDispatcher {
 
 		this.castShadow = false;
 		this.receiveShadow = false;
+		this.reflectionProbeMode = false;
 
 		this.frustumCulled = true;
 		this.renderOrder = 0;

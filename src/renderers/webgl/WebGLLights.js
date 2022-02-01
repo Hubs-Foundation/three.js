@@ -174,6 +174,7 @@ function WebGLLights( extensions, capabilities ) {
 
 		ambient: [ 0, 0, 0 ],
 		probe: [],
+		reflectionProbes: [],
 		directional: [],
 		directionalShadow: [],
 		directionalShadowMap: [],
@@ -215,6 +216,8 @@ function WebGLLights( extensions, capabilities ) {
 		let numPointShadows = 0;
 		let numSpotShadows = 0;
 
+		let numReflectionProbes = 0;
+
 		lights.sort( shadowCastingLightsFirst );
 
 		// artist-friendly light intensity scaling factor
@@ -243,6 +246,10 @@ function WebGLLights( extensions, capabilities ) {
 					state.probe[ j ].addScaledVector( light.sh.coefficients[ j ], intensity );
 
 				}
+
+			} else if ( light.isReflectionProbe ) {
+
+				state.reflectionProbes[ numReflectionProbes ++ ] = light;
 
 			} else if ( light.isDirectionalLight ) {
 
@@ -410,6 +417,8 @@ function WebGLLights( extensions, capabilities ) {
 		state.ambient[ 0 ] = r;
 		state.ambient[ 1 ] = g;
 		state.ambient[ 2 ] = b;
+
+		state.reflectionProbes.length = numReflectionProbes;
 
 		const hash = state.hash;
 

@@ -62,6 +62,7 @@ export { AmbientLight } from './lights/AmbientLight.js';
 export { AmbientLightProbe } from './lights/AmbientLightProbe.js';
 export { Light } from './lights/Light.js';
 export { LightProbe } from './lights/LightProbe.js';
+export { ReflectionProbe } from './lights/ReflectionProbe.js';
 export { StereoCamera } from './cameras/StereoCamera.js';
 export { PerspectiveCamera } from './cameras/PerspectiveCamera.js';
 export { OrthographicCamera } from './cameras/OrthographicCamera.js';

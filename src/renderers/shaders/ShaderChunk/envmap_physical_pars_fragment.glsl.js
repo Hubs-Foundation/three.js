@@ -14,6 +14,9 @@ export default /* glsl */`
 			vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
 
 			vec4 envMapColor = textureCubeUV( envMap, worldNormal, 1.0 );
+			vec4 envMap2Color = textureCubeUV( envMap2, worldNormal, 1.0 );
+
+			envMapColor = mix(envMapColor, envMap2Color, envMapBlend);
 
 			return PI * envMapColor.rgb * envMapIntensity;
 
@@ -47,6 +50,9 @@ export default /* glsl */`
 			reflectVec = inverseTransformDirection( reflectVec, viewMatrix );
 
 			vec4 envMapColor = textureCubeUV( envMap, reflectVec, roughness );
+			vec4 envMap2Color = textureCubeUV( envMap2, reflectVec, roughness );
+
+			envMapColor = mix(envMapColor, envMap2Color, envMapBlend);
 
 			return envMapColor.rgb * envMapIntensity;
 

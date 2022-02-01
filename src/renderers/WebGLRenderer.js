@@ -16,6 +16,7 @@ import { Frustum } from '../math/Frustum.js';
 import { Matrix4 } from '../math/Matrix4.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Vector4 } from '../math/Vector4.js';
+import { Box3 } from '../math/Box3.js';
 import { WebGLAnimation } from './webgl/WebGLAnimation.js';
 import { WebGLAttributes } from './webgl/WebGLAttributes.js';
 import { WebGLBackground } from './webgl/WebGLBackground.js';
@@ -175,6 +176,9 @@ function WebGLRenderer( parameters = {} ) {
 	const _projScreenMatrix = new Matrix4();
 
 	const _vector3 = new Vector3();
+
+	const _tmpObjectAABB = new Box3();
+	const _tmpOverlapBox = new Box3();
 
 	const _emptyScene = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
 
@@ -1251,6 +1255,14 @@ function WebGLRenderer( parameters = {} ) {
 
 		currentRenderState.setupLightsView( camera );
 
+		// TODO this triggers cubemap generation up front, should probably be done elsewhere
+		const reflectionProbes = currentRenderState.state.lights.state.reflectionProbes;
+		for ( let i = 0; i < reflectionProbes.length; i ++ ) {
+
+			cubeuvmaps.get( reflectionProbes[ i ].texture );
+
+		}
+
 		if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, scene, camera );
 
 		if ( viewport ) state.viewport( _currentViewport.copy( viewport ) );
@@ -1735,6 +1747,88 @@ function WebGLRenderer( parameters = {} ) {
 					p_uniforms.setOptional( _gl, skeleton, 'boneMatrices' );
 
 				}
+
+			}
+
+		}
+
+		// This is not done in refreshMaterialUniforms because we want to be able to support the same material using different enviornment map (based on its location)
+		// Because of this, similar to the above note about skinned meshes, this must be done before refreshMaterialUniforms is called, and both texture uniforms must
+		// be set in all cases to prevent texture units from becoming out of sync when refreshMaterials is not set.
+		if ( materialProperties.envMap && material.isMeshStandardMaterial ) {
+
+			if ( ! material.envMap && object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
+
+				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
+				p_uniforms.setValue( _gl, 'envMap2', object.__webglStaticReflectionProbe.envMap2, textures );
+				p_uniforms.setValue( _gl, 'envMapBlend', object.__webglStaticReflectionProbe.envMapBlend );
+
+			} else if ( ! material.envMap && object.reflectionProbeMode ) {
+
+				if ( ! geometry.boundingBox ) {
+
+					console.log( 'generated bounding box for ', object.name );
+					geometry.computeBoundingBox();
+
+				}
+
+				_tmpObjectAABB.copy( geometry.boundingBox ).applyMatrix4( object.matrixWorld );
+
+				let envMapA = null;
+				let envMapB = null;
+				let maxVolumeA = 0;
+				let maxVolumeB = 0;
+
+				const probes = lights.state.reflectionProbes;
+				for ( let i = 0; i < probes.length; i ++ ) {
+
+					if ( probes[ i ].box.intersectsBox( _tmpObjectAABB ) ) {
+
+						const volume = _tmpOverlapBox.copy( _tmpObjectAABB ).intersect( probes[ i ].box ).volume();
+						if ( volume > maxVolumeA ) {
+
+							envMapB = envMapA;
+							maxVolumeB = maxVolumeA;
+							envMapA = probes[ i ].texture;
+							maxVolumeA = volume;
+
+						} else if ( volume > maxVolumeB ) {
+
+							envMapB = probes[ i ].texture;
+							maxVolumeB = volume;
+
+						}
+
+					}
+
+				}
+
+				const blend = envMapB ?
+					  maxVolumeB / ( maxVolumeA + maxVolumeB ) :
+					  1 - ( maxVolumeA / _tmpObjectAABB.volume() );
+
+				envMapA = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapA || environment );
+				envMapB = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapB || environment );
+
+				p_uniforms.setValue( _gl, 'envMap', envMapA, textures );
+				p_uniforms.setValue( _gl, 'envMap2', envMapB, textures );
+				p_uniforms.setValue( _gl, 'envMapBlend', blend );
+
+				if ( object.reflectionProbeMode === 'static' ) {
+
+					object.__webglStaticReflectionProbe = {
+						envMap: envMapA,
+						envMap2: envMapB,
+						envMapBlend: blend
+					};
+
+				}
+
+			} else {
+
+				p_uniforms.setValue( _gl, 'envMap', materialProperties.envMap, textures );
+				p_uniforms.setValue( _gl, 'envMap2', materialProperties.envMap, textures );
+				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
 
 			}
 
