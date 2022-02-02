@@ -55,6 +55,16 @@ function createCanvasElement() {
 
 }
 
+// non-zero here allows flat planes to still be lit by reflection probes
+// by considering them *very* thin instead of *infinitely* thin.
+function nonZeroBoxVolume( box ) {
+
+	return ( ( box.max.x - box.min.x || Number.EPSILON ) *
+			 ( box.max.y - box.min.y || Number.EPSILON ) *
+			 ( box.max.z - box.min.z || Number.EPSILON ) );
+
+}
+
 function WebGLRenderer( parameters = {} ) {
 
 	const _canvas = parameters.canvas !== undefined ? parameters.canvas : createCanvasElement(),
@@ -1752,18 +1762,27 @@ function WebGLRenderer( parameters = {} ) {
 
 		}
 
-		// This is not done in refreshMaterialUniforms because we want to be able to support the same material using different enviornment map (based on its location)
+		// This is not done in refreshMaterialUniforms because we want to be able to support the same material using different environment map (based on its location)
 		// Because of this, similar to the above note about skinned meshes, this must be done before refreshMaterialUniforms is called, and both texture uniforms must
-		// be set in all cases to prevent texture units from becoming out of sync when refreshMaterials is not set.
+		// be set in all cases to prevent texture units from becoming out of sync when refreshMaterials is not set and thus refreshMaterialUniforms is not called.
 		if ( materialProperties.envMap && material.isMeshStandardMaterial ) {
 
-			if ( ! material.envMap && object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
+			const probes = lights.state.reflectionProbes;
+
+			// this is essentially the same as the original codepath without ReflectionProbes, with the addition of setting envMap2 and envMapBlend to noop values
+			if ( material.envMap || ! probes.length || ! object.reflectionProbeMode ) {
+
+				p_uniforms.setValue( _gl, 'envMap', materialProperties.envMap, textures );
+				p_uniforms.setValue( _gl, 'envMap2', materialProperties.envMap, textures );
+				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
+
+			} else if ( object.reflectionProbeMode === 'static' && object.__webglStaticReflectionProbe ) {
 
 				p_uniforms.setValue( _gl, 'envMap', object.__webglStaticReflectionProbe.envMap, textures );
 				p_uniforms.setValue( _gl, 'envMap2', object.__webglStaticReflectionProbe.envMap2, textures );
 				p_uniforms.setValue( _gl, 'envMapBlend', object.__webglStaticReflectionProbe.envMapBlend );
 
-			} else if ( ! material.envMap && object.reflectionProbeMode ) {
+			} else {
 
 				if ( ! geometry.boundingBox ) {
 
@@ -1779,12 +1798,11 @@ function WebGLRenderer( parameters = {} ) {
 				let maxVolumeA = 0;
 				let maxVolumeB = 0;
 
-				const probes = lights.state.reflectionProbes;
 				for ( let i = 0; i < probes.length; i ++ ) {
 
 					if ( probes[ i ].box.intersectsBox( _tmpObjectAABB ) ) {
 
-						const volume = _tmpOverlapBox.copy( _tmpObjectAABB ).intersect( probes[ i ].box ).volume();
+						const volume = nonZeroBoxVolume( _tmpOverlapBox.copy( _tmpObjectAABB ).intersect( probes[ i ].box ) );
 						if ( volume > maxVolumeA ) {
 
 							envMapB = envMapA;
@@ -1805,7 +1823,7 @@ function WebGLRenderer( parameters = {} ) {
 
 				const blend = envMapB ?
 					  maxVolumeB / ( maxVolumeA + maxVolumeB ) :
-					  1 - ( maxVolumeA / _tmpObjectAABB.volume() );
+					  1 - ( maxVolumeA / nonZeroBoxVolume( _tmpObjectAABB ) );
 
 				envMapA = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapA || environment );
 				envMapB = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( envMapB || environment );
@@ -1823,12 +1841,6 @@ function WebGLRenderer( parameters = {} ) {
 					};
 
 				}
-
-			} else {
-
-				p_uniforms.setValue( _gl, 'envMap', materialProperties.envMap, textures );
-				p_uniforms.setValue( _gl, 'envMap2', materialProperties.envMap, textures );
-				p_uniforms.setValue( _gl, 'envMapBlend', 0 );
 
 			}
 

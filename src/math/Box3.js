@@ -9,12 +9,6 @@ class Box3 {
 
 	}
 
-	volume() {
-
-		return ( ( this.max.x - this.min.x ) * ( this.max.y - this.min.y ) * ( this.max.z - this.min.z ) );
-
-	}
-
 	set( min, max ) {
 
 		this.min.copy( min );
