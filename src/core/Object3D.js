@@ -11,6 +11,7 @@ let _object3DId = 0;
 
 const _v1 = /*@__PURE__*/ new Vector3();
 const _q1 = /*@__PURE__*/ new Quaternion();
+const _q2 = /*@__PURE__*/ new Quaternion();
 const _m1 = /*@__PURE__*/ new Matrix4();
 const _m2 = /*@__PURE__*/ new Matrix4();
 const _target = /*@__PURE__*/ new Vector3();
@@ -295,6 +296,8 @@ class Object3D extends EventDispatcher {
 
 		}
 
+		_q2.copy( this.quaternion );
+
 		this.quaternion.setFromRotationMatrix( _m1 );
 
 		if ( parent ) {
@@ -305,7 +308,15 @@ class Object3D extends EventDispatcher {
 
 		}
 
-		this.matrixNeedsUpdate = true;
+		if ( _q2.near( this.quaternion, _epsilon ) ) {
+
+			this.quaternion.copy( _q2 );
+
+		} else {
+
+			this.matrixNeedsUpdate = true;
+
+		}
 
 	}
 
