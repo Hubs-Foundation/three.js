@@ -12,6 +12,7 @@ let _object3DId = 0;
 const _v1 = /*@__PURE__*/ new Vector3();
 const _q1 = /*@__PURE__*/ new Quaternion();
 const _m1 = /*@__PURE__*/ new Matrix4();
+const _m2 = /*@__PURE__*/ new Matrix4();
 const _target = /*@__PURE__*/ new Vector3();
 
 const _position = /*@__PURE__*/ new Vector3();
@@ -30,6 +31,8 @@ const _zeroQuat = new Quaternion();
 const _oneScale = new Vector3( 1, 1, 1 );
 const _identity = new Matrix4();
 _identity.identity();
+
+const _epsilon = 0.00000000001;
 
 class Object3D extends EventDispatcher {
 
@@ -666,6 +669,8 @@ class Object3D extends EventDispatcher {
 
 		if ( this.matrixWorldNeedsUpdate || forceWorldUpdate ) {
 
+			_m2.copy( this.matrixWorld );
+
 			if ( this.parent === null ) {
 
 				this.matrixWorld.copy( this.matrix );
@@ -692,7 +697,16 @@ class Object3D extends EventDispatcher {
 
 			}
 
-			this.childrenNeedMatrixWorldUpdate = true;
+			if ( _m2.near( this.matrixWorld, _epsilon ) ) {
+
+				this.matrixWorld.copy( _m2 );
+
+			} else {
+
+				this.childrenNeedMatrixWorldUpdate = true;
+
+			}
+
 			this.matrixWorldNeedsUpdate = false;
 
 		}
