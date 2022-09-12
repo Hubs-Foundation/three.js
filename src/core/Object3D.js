@@ -359,6 +359,7 @@ class Object3D extends EventDispatcher {
 
 			object.parent = this;
 			this.children.push( object );
+			object.matrixWorldNeedsUpdate = true;
 
 			object.dispatchEvent( _addedEvent );
 
@@ -392,6 +393,13 @@ class Object3D extends EventDispatcher {
 
 			object.parent = null;
 			this.children.splice( index, 1 );
+
+			if ( object.hasHadFirstMatrixUpdate && ! object.matrixIsModified ) {
+
+				object.hasHadFirstMatrixUpdate = false;
+				object.matrixWorld = object.cachedMatrixWorld;
+
+			}
 
 			object.dispatchEvent( _removedEvent );
 
@@ -599,13 +607,8 @@ class Object3D extends EventDispatcher {
 
 		if ( ! this.visible && ! includeInvisible ) {
 
-			if ( this.parent && this.parent.childrenNeedMatrixWorldUpdate ) {
+			if ( forceWorldUpdate ) {
 
-				// The parent's childrenNeedMatrixWorldUpdate is cleared
-				// if this method is recursively called from the parent
-				// and this object may lose the opportunity to update
-				// the world matrix. So raise the matrixWorldNeedsUpdate flag
-				// instead, and update it later when needed.
 				this.matrixWorldNeedsUpdate = true;
 
 			}
